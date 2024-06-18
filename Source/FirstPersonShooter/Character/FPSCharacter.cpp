@@ -7,8 +7,9 @@
 #include "EnhancedInputComponent.h"
 #include "Camera/CameraComponent.h"
 #include "FirstPersonShooter/PlayerController/FPSPlayerController.h"
-#include "GameFramework/PawnMovementComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "Net/UnrealNetwork.h"
 
 AFPSCharacter::AFPSCharacter()
 {
@@ -23,14 +24,21 @@ AFPSCharacter::AFPSCharacter()
 	//Camera
 	Camera = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	Camera->SetupAttachment(SpringArm);
+
+}
+
+void AFPSCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(AFPSCharacter, bWalking);
 }
 
 void AFPSCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-
-	CheckPlayerControllerAndSetInputMappings();
 	
+	CheckPlayerControllerAndSetInputMappings();
 }
 
 void AFPSCharacter::CheckPlayerControllerAndSetInputMappings()
@@ -65,23 +73,23 @@ void AFPSCharacter::Tick(float DeltaTime)
 void AFPSCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
-
+	// Setting Inputs
 	if(UEnhancedInputComponent* EIC = CastChecked<UEnhancedInputComponent>(InputComponent))
 	{
+		//Look
+		EIC->BindAction(LookAction, ETriggerEvent::Triggered, this, &AFPSCharacter::Look);
 		//Move
 		EIC->BindAction(MoveAction, ETriggerEvent::Triggered, this, &AFPSCharacter::Move);
 		// Walk (not running / no footstep sounds)
-		/*
-		EIC->BindAction(WalkAction, ETriggerEvent::Triggered, this, &ADFNCharacter::WalkPressed);
-		EIC->BindAction(WalkAction, ETriggerEvent::Completed, this, &ADFNCharacter::WalkReleased);
-		*/
-
+		EIC->BindAction(WalkAction, ETriggerEvent::Triggered, this, &AFPSCharacter::WalkPressed);
+		EIC->BindAction(WalkAction, ETriggerEvent::Completed, this, &AFPSCharacter::WalkReleased);
+		// Crouch
 		EIC->BindAction(CrouchAction, ETriggerEvent::Triggered, this, &AFPSCharacter::CrouchPressed);
 		EIC->BindAction(CrouchAction, ETriggerEvent::Completed, this, &AFPSCharacter::CrouchReleased);
-		//Look
-		EIC->BindAction(LookAction, ETriggerEvent::Triggered, this, &AFPSCharacter::Look);
+		//Jump
+		EIC->BindAction(JumpAction, ETriggerEvent::Triggered, this, &AFPSCharacter::Jump);
+		EIC->BindAction(JumpAction, ETriggerEvent::Completed, this, &AFPSCharacter::StopJumping);
 	}
-
 }
 
 ACharacter* AFPSCharacter::GetCharacterRef()
@@ -122,4 +130,53 @@ void AFPSCharacter::CrouchReleased()
 		UnCrouch();
 		bIsCrouched = false;
 	}
+}
+
+void AFPSCharacter::WalkPressed()
+{
+	if(!GetCharacterMovement()) return;
+	
+	if(IsLocallyControlled())
+	{
+		Server_WalkPressed();
+	}
+	GetCharacterMovement()->MaxWalkSpeed = 300.f;
+	bWalking = true;
+}
+
+void AFPSCharacter::WalkReleased()
+{
+	if(!GetCharacterMovement()) return;
+	if(IsLocallyControlled())
+	{
+		Server_WalkReleased();
+	}
+	GetCharacterMovement()->MaxWalkSpeed = 600.f;
+	bWalking = false;
+}
+
+void AFPSCharacter::Server_WalkPressed_Implementation()
+{
+	GetCharacterMovement()->MaxWalkSpeed = 300.f;
+	bWalking = true;
+}
+
+void AFPSCharacter::Server_WalkReleased_Implementation()
+{
+	GetCharacterMovement()->MaxWalkSpeed = 600.f;
+	bWalking = false;
+}
+
+void AFPSCharacter::Jump()
+{
+	if(bIsCrouched)
+	{
+		UnCrouch();
+	}
+	Super::Jump();
+}
+
+void AFPSCharacter::StopJumping()
+{
+	Super::StopJumping();
 }

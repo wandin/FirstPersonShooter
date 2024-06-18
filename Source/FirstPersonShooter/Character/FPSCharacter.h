@@ -20,6 +20,9 @@ class FIRSTPERSONSHOOTER_API AFPSCharacter : public ACharacter, public ICharacte
 
 public:
 	AFPSCharacter();
+	
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
 
 protected:
 	virtual void BeginPlay() override;
@@ -30,6 +33,17 @@ protected:
 	void Look(const FInputActionValue& Value);
 	void CrouchPressed();
 	void CrouchReleased();
+	void WalkPressed();
+	void WalkReleased();
+
+	virtual void Jump() override;
+	virtual void StopJumping() override;
+
+
+	UFUNCTION(Server, Unreliable)
+	void Server_WalkPressed();
+	UFUNCTION(Server, Unreliable)
+	void Server_WalkReleased();
 
 public:	
 	virtual void Tick(float DeltaTime) override;
@@ -48,11 +62,18 @@ private:
 	UInputAction* LookAction;
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Input, meta=(AllowPrivateAccess = "true"))
 	UInputAction* CrouchAction;
-
-
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Input, meta=(AllowPrivateAccess = "true"))
+	UInputAction* WalkAction;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category=Input, meta=(AllowPrivateAccess = "true"))
+	UInputAction* JumpAction;
+	
 	/*		Spring Arm & Camera */
 	UPROPERTY(EditDefaultsOnly, Category = "Camera")
 	USpringArmComponent* SpringArm;
 	UPROPERTY(EditDefaultsOnly, Category = "Camera")
-	UCameraComponent* Camera;	
+	UCameraComponent* Camera;
+	
+	UPROPERTY(Replicated)
+	bool bWalking;
+	
 };

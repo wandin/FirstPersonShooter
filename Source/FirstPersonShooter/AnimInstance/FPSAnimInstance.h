@@ -21,7 +21,7 @@ public:
 	virtual void NativeUpdateAnimation(float DeltaSeconds) override;
 
 	ACharacter* GetCharacterRef() const;
-	
+
 private:
 
 	//	Character and properties
@@ -38,8 +38,8 @@ private:
 	bool bIsCrouched;
 	UPROPERTY(BlueprintReadOnly, Category = Movement, meta = (AllowPrivateAccess = "true"))
 	bool bIsFalling;
-
-
+	
 	static float GetCharacterSpeed(const ACharacter* Character);
 	float GetCharacterRotation(const ACharacter* Character) const;
+	bool GetCharacterIsFalling(const ACharacter* Character) const;
 };

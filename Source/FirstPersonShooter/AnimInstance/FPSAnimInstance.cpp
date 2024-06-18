@@ -2,7 +2,6 @@
 
 
 #include "FPSAnimInstance.h"
-
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Kismet/KismetMathLibrary.h"
 
@@ -62,4 +61,9 @@ float UFPSAnimInstance::GetCharacterRotation(const ACharacter* Character) const
 	const FRotator AimRotation = FPSCharacter->GetBaseAimRotation();
 	const FRotator MovementRotation = UKismetMathLibrary::MakeRotFromX(FPSCharacter->GetVelocity());
 	return UKismetMathLibrary::NormalizedDeltaRotator(MovementRotation, AimRotation).Yaw;
+}
+
+bool UFPSAnimInstance::GetCharacterIsFalling(const ACharacter* Character) const
+{
+	return Character->GetMovementComponent()->IsFalling();
 }
