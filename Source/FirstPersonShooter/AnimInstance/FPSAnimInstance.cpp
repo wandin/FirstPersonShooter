@@ -9,7 +9,9 @@ void UFPSAnimInstance::NativeInitializeAnimation()
 {
 	Super::NativeInitializeAnimation();
 
-	FPSCharacter = GetCharacterRef();
+	//FPSCharacter = GetCharacterRef();
+	FPSCharacter = Cast<AFPSCharacter>(TryGetPawnOwner());
+
 }
 
 void UFPSAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
@@ -18,6 +20,8 @@ void UFPSAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 	/* Check FPSCharacter */
 	if(!IsValid(FPSCharacter))
 	{
+		//FPSCharacter = Cast<AFPSCharacter>(TryGetPawnOwner());
+
 		FPSCharacter = GetCharacterRef();
 	}
 	if(!IsValid(FPSCharacter)) return;
@@ -26,6 +30,8 @@ void UFPSAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 	
 	//	Offsets
 	CharacterRotation = GetCharacterRotation(FPSCharacter);
+	AimPitch = GetCharacterAimPitch(FPSCharacter);
+	
 	//	Character Speed
 	Speed = GetCharacterSpeed(FPSCharacter);
 	// Character booleans
@@ -34,14 +40,12 @@ void UFPSAnimInstance::NativeUpdateAnimation(float DeltaSeconds)
 	bIsFalling = FPSCharacter->GetCharacterMovement()->IsFalling();
 }
 
-ACharacter* UFPSAnimInstance::GetCharacterRef() const
+AFPSCharacter* UFPSAnimInstance::GetCharacterRef() const
 {
-	ACharacter* LocalCharacter = Cast<ACharacter>(TryGetPawnOwner());
-
+	AFPSCharacter* LocalCharacter = Cast<AFPSCharacter>(TryGetPawnOwner());	
 	if(LocalCharacter && LocalCharacter->GetClass()->ImplementsInterface(UCharacterInterface::StaticClass()))
 	{
-		ICharacterInterface* CharacterInterface = Cast<ICharacterInterface>(LocalCharacter);
-		if(CharacterInterface)
+		if(ICharacterInterface* CharacterInterface = Cast<ICharacterInterface>(LocalCharacter))
 		{
 			return CharacterInterface->GetCharacterRef();
 		}
@@ -49,21 +53,26 @@ ACharacter* UFPSAnimInstance::GetCharacterRef() const
 	return nullptr;
 }
 
-float UFPSAnimInstance::GetCharacterSpeed(const ACharacter* Character)
+float UFPSAnimInstance::GetCharacterSpeed(const AFPSCharacter* Character)
 {
 	FVector Velocity = Character->GetVelocity();
 	Velocity.Z = 0.f;
 	return Velocity.Size();
 }
 
-float UFPSAnimInstance::GetCharacterRotation(const ACharacter* Character) const
+float UFPSAnimInstance::GetCharacterRotation(const AFPSCharacter* Character) const
 {
-	const FRotator AimRotation = FPSCharacter->GetBaseAimRotation();
+	const FRotator AimRotation = Character->GetBaseAimRotation();
 	const FRotator MovementRotation = UKismetMathLibrary::MakeRotFromX(FPSCharacter->GetVelocity());
 	return UKismetMathLibrary::NormalizedDeltaRotator(MovementRotation, AimRotation).Yaw;
 }
 
-bool UFPSAnimInstance::GetCharacterIsFalling(const ACharacter* Character) const
+bool UFPSAnimInstance::GetCharacterIsFalling(const AFPSCharacter* Character)
 {
 	return Character->GetMovementComponent()->IsFalling();
+}
+
+float UFPSAnimInstance::GetCharacterAimPitch(const AFPSCharacter* Character)
+{
+	return Character->AimPitch;
 }

@@ -22,12 +22,16 @@ public:
 	AFPSCharacter();
 	
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	
+	virtual void Tick(float DeltaTime) override;
+	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 
+	virtual AFPSCharacter* GetCharacterRef() override;
 
 protected:
 	virtual void BeginPlay() override;
 
-	void CheckPlayerControllerAndSetInputMappings();
+	void CheckPlayerControllerAndSetInputMappings() const;
 	
 	void Move(const FInputActionValue& Value);
 	void Look(const FInputActionValue& Value);
@@ -45,11 +49,10 @@ protected:
 	UFUNCTION(Server, Unreliable)
 	void Server_WalkReleased();
 
-public:	
-	virtual void Tick(float DeltaTime) override;
-	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 
-	virtual ACharacter* GetCharacterRef() override;
+	// A Mesh for casting a proper shadow, as in the (inherited mesh from ACharacter class) we are hiding the head to attach a camera
+	UPROPERTY(EditAnywhere)
+	USkeletalMeshComponent* ShadowMesh;
 
 private:
 
@@ -73,7 +76,24 @@ private:
 	UPROPERTY(EditDefaultsOnly, Category = "Camera")
 	UCameraComponent* Camera;
 	
+	//	Functions
+	UFUNCTION()
+	void CalculateAimDirection();
+
+	UFUNCTION(Server, Reliable)
+	void Server_CalculateAimDirection();
+
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_UpdateAimPitch(float NewAimPitch);
+
+	FORCEINLINE float GetAimDirection() const { return AimPitch; }
+
 	UPROPERTY(Replicated)
 	bool bWalking;
+
+public:	
+
+	UPROPERTY(Replicated)
+	float AimPitch;
 	
 };
