@@ -20,16 +20,18 @@ public:
 	virtual void NativeInitializeAnimation() override;
 	virtual void NativeUpdateAnimation(float DeltaSeconds) override;
 
-	ACharacter* GetCharacterRef() const;
+	AFPSCharacter* GetCharacterRef() const;
 
 private:
 
 	//	Character and properties
 	UPROPERTY(BlueprintReadOnly, Category = Character, meta = (AllowPrivateAccess = "true"))
-	ACharacter* FPSCharacter;
+	AFPSCharacter* FPSCharacter;
 
 	UPROPERTY(BlueprintReadOnly, Category = Movement, meta = (AllowPrivateAccess = "true"))
 	float CharacterRotation;
+	UPROPERTY(BlueprintReadOnly, Category = Movement, meta = (AllowPrivateAccess = "true"))
+	float AimPitch;
 	UPROPERTY(BlueprintReadOnly, Category = Movement, meta = (AllowPrivateAccess = "true"))
 	float Speed;
 	UPROPERTY(BlueprintReadOnly, Category = Movement, meta = (AllowPrivateAccess = "true"))
@@ -39,7 +41,9 @@ private:
 	UPROPERTY(BlueprintReadOnly, Category = Movement, meta = (AllowPrivateAccess = "true"))
 	bool bIsFalling;
 	
-	static float GetCharacterSpeed(const ACharacter* Character);
-	float GetCharacterRotation(const ACharacter* Character) const;
-	bool GetCharacterIsFalling(const ACharacter* Character) const;
+	static float GetCharacterSpeed(const AFPSCharacter* Character);
+	float GetCharacterRotation(const AFPSCharacter* Character) const;
+	static bool GetCharacterIsFalling(const AFPSCharacter* Character);
+
+	static float GetCharacterAimPitch(const AFPSCharacter* Character);
 };

@@ -22,34 +22,42 @@ public:
 	AFPSCharacter();
 	
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	
+	virtual void Tick(float DeltaTime) override;
+	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 
+	virtual AFPSCharacter* GetCharacterRef() override;
 
 protected:
 	virtual void BeginPlay() override;
 
-	void CheckPlayerControllerAndSetInputMappings();
+	void CheckPlayerControllerAndSetInputMappings() const;
+
+	// A Mesh for casting a proper shadow, as in the (inherited mesh from ACharacter class) we are hiding the head to attach a camera
+	UPROPERTY(EditAnywhere)
+	USkeletalMeshComponent* ShadowMesh;
 	
 	void Move(const FInputActionValue& Value);
 	void Look(const FInputActionValue& Value);
-	void CrouchPressed();
-	void CrouchReleased();
-	void WalkPressed();
-	void WalkReleased();
+	void CrouchPressed();			// handles Crouch input Pressed
+	void CrouchReleased();			// handles Crouch input Released
+	
+	void WalkPressed();				// handles Walk input Pressed
+	void WalkReleased();			// handles Walk input Released
+	
+	UFUNCTION(Server, Unreliable)
+	void Server_WalkPressed();		// Handles replicating the movement while Press Walking
+	UFUNCTION(Server, Unreliable)
+	void Server_WalkReleased();		// Handles replicating the movement while Releasing Walking
 
+	
+	/**
+	 * We are overriding this function to allow Jumping while Crouching as the default implementation does not allow jump while crouching
+	 * @return if we can jump
+	 */
+	virtual bool CanJumpInternal_Implementation() const override;
 	virtual void Jump() override;
 	virtual void StopJumping() override;
-
-
-	UFUNCTION(Server, Unreliable)
-	void Server_WalkPressed();
-	UFUNCTION(Server, Unreliable)
-	void Server_WalkReleased();
-
-public:	
-	virtual void Tick(float DeltaTime) override;
-	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
-
-	virtual ACharacter* GetCharacterRef() override;
 
 private:
 
@@ -72,8 +80,29 @@ private:
 	USpringArmComponent* SpringArm;
 	UPROPERTY(EditDefaultsOnly, Category = "Camera")
 	UCameraComponent* Camera;
+
+	// To simplify avoid calling GetCharacterMovement() all the time
+	UPROPERTY()
+	UCharacterMovementComponent* MovementComponent;
 	
+	//	Functions
+	UFUNCTION()
+	void CalculateAimDirection();
+
+	UFUNCTION(Server, Reliable)
+	void Server_CalculateAimDirection();
+
+	UFUNCTION(NetMulticast, Reliable)
+	void Multicast_UpdateAimPitch(float NewAimPitch);
+
+	FORCEINLINE float GetAimDirection() const { return AimPitch; }
+
 	UPROPERTY(Replicated)
 	bool bWalking;
+
+public:	
+
+	UPROPERTY(Replicated)
+	float AimPitch;
 	
 };
