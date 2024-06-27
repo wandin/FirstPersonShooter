@@ -17,6 +17,8 @@ AFPSCharacter::AFPSCharacter()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
+	MovementComponent = GetCharacterMovement();
+	
 	ShadowMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("ShadowMesh"));
 	if(ShadowMesh)
 	{
@@ -40,12 +42,12 @@ AFPSCharacter::AFPSCharacter()
 		Camera->SetupAttachment(SpringArm);
 	}
 
-	if(GetCharacterMovement())
+	if(MovementComponent)
 	{
 		// Walk of Ledges
-		GetCharacterMovement()->bCanWalkOffLedges = true;
-		GetCharacterMovement()->bCanWalkOffLedgesWhenCrouching = true;
-		GetCharacterMovement()->LedgeCheckThreshold = 0.0f;
+		MovementComponent->bCanWalkOffLedges = true;
+		MovementComponent->bCanWalkOffLedgesWhenCrouching = true;
+		MovementComponent->LedgeCheckThreshold = 0.0f;
 	}
 }
 
@@ -63,7 +65,7 @@ void AFPSCharacter::BeginPlay()
 
 	CheckPlayerControllerAndSetInputMappings();
 
-	if (IsLocallyControlled())
+	if (IsLocallyControlled() && GetMesh())
 	{
 		// Hide Head bone to not overlap with camera
 		GetMesh()->HideBoneByName("head", PBO_None);
@@ -85,7 +87,6 @@ void AFPSCharacter::CheckPlayerControllerAndSetInputMappings() const
 				if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<
 					UEnhancedInputLocalPlayerSubsystem>(PC->GetLocalPlayer()))
 				{
-					UE_LOG(LogTemp, Warning, TEXT("Beginplay - Subsystem is valid!"));
 					Subsystem->AddMappingContext(PlayerMappingContext, 0);
 				}
 			}
@@ -165,68 +166,66 @@ void AFPSCharacter::Look(const FInputActionValue& Value)
 	AddControllerYawInput(LookAxisVector.X);
 }
 
-void AFPSCharacter::CrouchPressed()
-{
-	if(!GetCharacterMovement()->IsFalling() && !bIsCrouched)
-	{
-		Crouch();
-	}
-	else if (GetCharacterMovement()->IsFalling() && bIsCrouched)
-	{
-		Crouch();
-	}
-}
-
-void AFPSCharacter::CrouchReleased()
-{
-	if(bIsCrouched)
-	{
-		UnCrouch();
-	}
-}
-
 void AFPSCharacter::WalkPressed()
 {
-	if (!GetCharacterMovement()) return;
-	float WalkSpeed = GetCharacterMovement()->MaxWalkSpeedCrouched;
+	if (!MovementComponent) return;
+	float WalkSpeed = MovementComponent->MaxWalkSpeedCrouched;
 	if (IsLocallyControlled())
 	{
 		Server_WalkPressed();
 	}
-	GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
+	MovementComponent->MaxWalkSpeed = WalkSpeed;
 	bWalking = true;
 }
 
 void AFPSCharacter::WalkReleased()
 {
-	if (!GetCharacterMovement()) return;
+	if (!MovementComponent) return;
 	if (IsLocallyControlled())
 	{
 		Server_WalkReleased();
 	}
-	GetCharacterMovement()->MaxWalkSpeed = 600.f;
+	MovementComponent->MaxWalkSpeed = 600.f;
 	bWalking = false;
 }
 
 void AFPSCharacter::Server_WalkPressed_Implementation()
 {
-	GetCharacterMovement()->MaxWalkSpeed = 300.f;
+	MovementComponent->MaxWalkSpeed = 300.f;
 	bWalking = true;
 }
 
 void AFPSCharacter::Server_WalkReleased_Implementation()
 {
-	GetCharacterMovement()->MaxWalkSpeed = 600.f;
+	MovementComponent->MaxWalkSpeed = 600.f;
 	bWalking = false;
+}
+
+void AFPSCharacter::CrouchPressed()
+{
+	Crouch();
+}
+
+void AFPSCharacter::CrouchReleased()
+{
+	UnCrouch();
+}
+
+bool AFPSCharacter::CanJumpInternal_Implementation() const
+{
+	if(bIsCrouched && !MovementComponent->IsFalling())
+	{
+		return true;
+	}
+	return Super::CanJumpInternal_Implementation();
 }
 
 void AFPSCharacter::Jump()
 {
-	if(bIsCrouched)
+	if(CanJumpInternal())
 	{
-		UnCrouch();		
+		Super::Jump();
 	}
-	Super::Jump();
 }
 
 void AFPSCharacter::StopJumping()
