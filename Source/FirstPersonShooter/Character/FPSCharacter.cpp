@@ -10,6 +10,7 @@
 #include "FirstPersonShooter/PlayerController/FPSPlayerController.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
+#include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
 #include "Net/UnrealNetwork.h"
 
@@ -18,6 +19,9 @@ AFPSCharacter::AFPSCharacter()
 	PrimaryActorTick.bCanEverTick = true;
 
 	MovementComponent = GetCharacterMovement();
+
+	CharacterMesh = GetMesh();
+	CharacterMesh->CastShadow = false;
 	
 	ShadowMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("ShadowMesh"));
 	if(ShadowMesh)
@@ -224,6 +228,10 @@ void AFPSCharacter::Jump()
 {
 	if(CanJumpInternal())
 	{
+		if(JumpLandingSound)
+		{
+			UGameplayStatics::PlaySoundAtLocation(this, JumpLandingSound, GetActorLocation());
+		}
 		Super::Jump();
 	}
 }
@@ -231,4 +239,13 @@ void AFPSCharacter::Jump()
 void AFPSCharacter::StopJumping()
 {
 	Super::StopJumping();
+}
+
+void AFPSCharacter::Landed(const FHitResult& Hit)
+{
+	Super::Landed(Hit);
+	if(JumpLandingSound)
+	{
+		UGameplayStatics::PlaySoundAtLocation(this, JumpLandingSound, GetActorLocation());
+	}
 }

@@ -33,7 +33,10 @@ protected:
 
 	void CheckPlayerControllerAndSetInputMappings() const;
 
-	// A Mesh for casting a proper shadow, as in the (inherited mesh from ACharacter class) we are hiding the head to attach a camera
+	// Default Character Mes (inherited mesh from ACharacter class) - The mesh we see
+	UPROPERTY()
+	USkeletalMeshComponent* CharacterMesh;
+	// A Mesh for casting a proper shadow, as in the (inherited mesh from ACharacter class) we are hiding the Defauolt Mesh's head to attach a camera
 	UPROPERTY(EditAnywhere)
 	USkeletalMeshComponent* ShadowMesh;
 	
@@ -100,9 +103,16 @@ private:
 	UPROPERTY(Replicated)
 	bool bWalking;
 
+
+	UPROPERTY(EditDefaultsOnly)
+	USoundBase* JumpLandingSound;
+
 public:	
 
 	UPROPERTY(Replicated)
 	float AimPitch;
+
+	// We are overriding this function mainly to Play a sound At location when the Character lands
+	virtual void Landed(const FHitResult& Hit) override;
 	
 };
