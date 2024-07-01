@@ -65,9 +65,7 @@ void AWDNCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLif
 void AWDNCharacter::BeginPlay()
 {
 	Super::BeginPlay();
-
-	CheckPlayerControllerAndSetInputMappings();
-
+	
 	if (IsLocallyControlled() && GetMesh())
 	{
 		// Hide Head bone to not overlap with camera
@@ -75,54 +73,10 @@ void AWDNCharacter::BeginPlay()
 	}
 }
 
-void AWDNCharacter::CheckPlayerControllerAndSetInputMappings() const
-{
-	AController* LocalController = GetController();
-
-	if (LocalController && LocalController->GetClass()->ImplementsInterface(UPlayerControllerInterface::StaticClass()))
-	{
-		if (IPlayerControllerInterface* PCInterface = Cast<IPlayerControllerInterface>(LocalController))
-		{
-			APlayerController* PC = PCInterface->GetPlayerControllerRef();
-			if (PC)
-			{
-				/* Mapping Input*/
-				if (UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<
-					UEnhancedInputLocalPlayerSubsystem>(PC->GetLocalPlayer()))
-				{
-					Subsystem->AddMappingContext(PlayerMappingContext, 0);
-				}
-			}
-		}
-	}
-}
-
 void AWDNCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 	CalculateAimDirection();
-}
-
-void AWDNCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
-{
-	Super::SetupPlayerInputComponent(PlayerInputComponent);
-	// Setting Inputs
-	if (UEnhancedInputComponent* EIC = CastChecked<UEnhancedInputComponent>(InputComponent))
-	{
-		//Look
-		EIC->BindAction(LookAction, ETriggerEvent::Triggered, this, &AWDNCharacter::Look);
-		//Move
-		EIC->BindAction(MoveAction, ETriggerEvent::Triggered, this, &AWDNCharacter::Move);
-		// Walk (not running / no footstep sounds)
-		EIC->BindAction(WalkAction, ETriggerEvent::Triggered, this, &AWDNCharacter::WalkPressed);
-		EIC->BindAction(WalkAction, ETriggerEvent::Completed, this, &AWDNCharacter::WalkReleased);
-		// Crouch
-		EIC->BindAction(CrouchAction, ETriggerEvent::Triggered, this, &AWDNCharacter::CrouchPressed);
-		EIC->BindAction(CrouchAction, ETriggerEvent::Completed, this, &AWDNCharacter::CrouchReleased);
-		//Jump
-		EIC->BindAction(JumpAction, ETriggerEvent::Triggered, this, &AWDNCharacter::Jump);
-		EIC->BindAction(JumpAction, ETriggerEvent::Completed, this, &AWDNCharacter::StopJumping);
-	}
 }
 
 AWDNCharacter* AWDNCharacter::GetCharacterRef()
@@ -144,29 +98,12 @@ void AWDNCharacter::Server_CalculateAimDirection_Implementation()
 {
 	FRotator DeltaRotation = UKismetMathLibrary::NormalizedDeltaRotator(GetControlRotation(), GetActorRotation());
 	AimPitch = DeltaRotation.Pitch;
-	Multicast_UpdateAimPitch(AimPitch); // Chama o Multicast para atualizar AimPitch em todos os clientes
+	Multicast_UpdateAimPitch(AimPitch); // Call Multicast to update AimPitch in all clients
 
 }
 void AWDNCharacter::Multicast_UpdateAimPitch_Implementation(float NewAimPitch)
 {
 	AimPitch = NewAimPitch;
-}
-
-void AWDNCharacter::Move(const FInputActionValue& Value)
-{
-	const FVector2d MovementVector = Value.Get<FVector2d>();
-	AddMovementInput(GetActorForwardVector(), MovementVector.X); // we get the Axis (X) from ForwardVector
-	AddMovementInput(GetActorRightVector(), MovementVector.Y); // we get the Axis (Y) from RightVector
-}
-
-void AWDNCharacter::Look(const FInputActionValue& Value)
-{
-	const FVector2d LookAxisVector = Value.Get<FVector2d>();
-	if (APlayerController* PlayerController = Cast<APlayerController>(GetController()))
-	{
-		PlayerController->AddPitchInput(LookAxisVector.Y);
-	}
-	AddControllerYawInput(LookAxisVector.X);
 }
 
 void AWDNCharacter::WalkPressed()
@@ -202,16 +139,6 @@ void AWDNCharacter::Server_WalkReleased_Implementation()
 {
 	MovementComponent->MaxWalkSpeed = 600.f;
 	bWalking = false;
-}
-
-void AWDNCharacter::CrouchPressed()
-{
-	Crouch();
-}
-
-void AWDNCharacter::CrouchReleased()
-{
-	UnCrouch();
 }
 
 bool AWDNCharacter::CanJumpInternal_Implementation() const
